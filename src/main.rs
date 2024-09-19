@@ -5,8 +5,9 @@ use arboard::Clipboard;
 use clap::Parser;
 use inquire::Select;
 use redb::Database;
-use std::fs::File;
+use std::fs::{create_dir, File};
 use std::io::prelude::*;
+use std::path::PathBuf;
 use std::{collections::HashMap, error::Error};
 
 #[derive(Parser)]
@@ -21,7 +22,26 @@ enum TMail {
     Me,
 }
 
+fn program_path() -> PathBuf {
+    let mut path = dirs::home_dir().unwrap();
+    path.push(format!(".{}", env!("CARGO_PKG_NAME")));
+    path
+}
+
+fn db_path() -> PathBuf {
+    let mut path = program_path();
+    path.push("accounts.redb");
+    path
+}
+
+fn index_path() -> PathBuf {
+    let mut path = program_path();
+    path.push("index.html");
+    path
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
+    if create_dir(program_path()).is_ok() {}
     let mut clipboard = Clipboard::new()?;
     let client = TMail::parse();
 
@@ -60,7 +80,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             )
             .prompt();
 
-            let database = Database::create(format!("~/{}/account.redb", env!("CARGO_PKG_NAME")))?;
+            let database = Database::create(db_path())?;
             let read_transaction = database.begin_read()?;
             let table = read_transaction.open_table(utilities::ACCOUNT)?;
 
@@ -81,10 +101,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 return Err(Box::from("No HTML content"));
             }
 
-            let mut file = File::create(format!("~/{}/index.html", env!("CARGO_PKG_NAME")))?;
+            let mut file = File::create(index_path())?;
             file.write_all(b"")?;
             file.write_all(&html[0].as_str().unwrap().as_bytes())?;
-            open::that("index.html")?;
+            open::that(index_path())?;
         }
     };
 

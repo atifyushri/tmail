@@ -1,3 +1,4 @@
+use crate::db_path;
 use rand::{
     distributions::{Alphanumeric, DistString},
     thread_rng,
@@ -9,7 +10,7 @@ use ureq::json;
 pub(crate) const ACCOUNT: TableDefinition<&str, &str> = TableDefinition::new("account");
 
 pub(crate) fn create_account() -> Result<String, Box<dyn Error>> {
-    let database = Database::create(format!("~/{}/account.redb", env!("CARGO_PKG_NAME")))?;
+    let database = Database::create(db_path())?;
     let read_transaction = database.begin_read()?;
     if let Ok(table) = read_transaction.open_table(ACCOUNT) {
         if table.get("address").is_ok() {
@@ -54,7 +55,7 @@ pub(crate) fn create_account() -> Result<String, Box<dyn Error>> {
 }
 
 pub(crate) fn get_details() -> Result<String, Box<dyn Error>> {
-    let database = Database::create(format!("~/{}/account.redb", env!("CARGO_PKG_NAME")))?;
+    let database = Database::create(db_path())?;
     let read_transaction = database.begin_read()?;
     let table = read_transaction.open_table(ACCOUNT)?;
     let Some(address) = table.get("address")? else {
@@ -65,7 +66,7 @@ pub(crate) fn get_details() -> Result<String, Box<dyn Error>> {
 }
 
 pub(crate) fn delete_account() -> Result<bool, Box<dyn Error>> {
-    let database = Database::create(format!("~/{}/account.redb", env!("CARGO_PKG_NAME")))?;
+    let database = Database::create(db_path())?;
     let read_transaction = database.begin_read()?;
     let table = read_transaction.open_table(ACCOUNT)?;
 
@@ -88,7 +89,7 @@ pub(crate) fn delete_account() -> Result<bool, Box<dyn Error>> {
 }
 
 pub(crate) fn retrieve_messages() -> Result<Vec<serde_json::Value>, Box<dyn Error>> {
-    let database = Database::create("account.redb")?;
+    let database = Database::create(db_path())?;
     let read_transaction = database.begin_read()?;
     let table = match read_transaction.open_table(ACCOUNT) {
         Ok(t) => t,

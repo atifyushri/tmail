@@ -3,10 +3,17 @@ name = "tmail"
 version = "0.1.0"
 edition = "2021"
 authors = ["Atif Yushri <atif@yushri.com>"]
+description = "A temporary email client"
+repository = "https://github.com/atifyushri/tmail"
+license = "MIT"
+license-file = "LICENSE"
+keywords = ["email", "temporary", "tmail", "temporary email"]
+
 
 [dependencies]
 arboard = "3.4.1"
 clap = { version = "4.5.17", features = ["derive"] }
+dirs = "5.0.1"
 inquire = "0.7.5"
 open = "5.3.0"
 rand = "0.8.5"
