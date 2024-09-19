@@ -69,14 +69,16 @@ fn main() -> Result<(), Box<dyn Error>> {
             let mut kv = HashMap::new();
             for e in m {
                 kv.insert(
-                    e["subject"].as_str().unwrap().to_owned(),
+                    e["subject"].as_str().unwrap().to_owned()
+                        + " - "
+                        + e["from"]["address"].as_str().unwrap(),
                     e["id"].as_str().unwrap().to_owned(),
                 );
             }
 
             let c = Select::new(
                 "Select a message",
-                kv.clone().into_iter().map(|x| x.0).collect(),
+                kv.clone().into_iter().map(|x| format!("{}", x.0)).collect(),
             )
             .prompt();
 

@@ -3,10 +3,10 @@ name = "tmail"
 version = "0.1.0"
 edition = "2021"
 authors = ["Atif Yushri <atif@yushri.com>"]
-description = "A temporary email client"
+description = "A temporary email address"
 repository = "https://github.com/atifyushri/tmail"
 license = "MIT"
-keywords = ["email", "temporary", "tmail"]
+keywords = ["email", "temporary", "tmail", "tempmail"]
 
 
 [dependencies]

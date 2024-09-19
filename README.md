@@ -38,3 +38,7 @@ tmail fetch
 > Subject of Email
 [↑↓ to move, enter to select, type to filter]
 ```
+
+## Credits
+This tool uses [mail.tm](https://mail.tm/) under the hood.
+Copyright of libraries goes to its respective owners and developers.
