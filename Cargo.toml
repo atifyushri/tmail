@@ -6,7 +6,6 @@ authors = ["Atif Yushri <atif@yushri.com>"]
 description = "A temporary email client"
 repository = "https://github.com/atifyushri/tmail"
 license = "MIT"
-license-file = "LICENSE"
 keywords = ["email", "temporary", "tmail", "temporary email"]
 
 
