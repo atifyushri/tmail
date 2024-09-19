@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use rand::{
     distributions::{Alphanumeric, DistString},
     thread_rng,
@@ -7,116 +9,68 @@ use ureq::json;
 
 const ACCOUNT: TableDefinition<&str, &str> = TableDefinition::new("account");
 
-pub(crate) fn create_account() {
-    let database = Database::create("account.redb").expect("Unable to create database");
-    let write_transaction = database
-        .begin_write()
-        .expect("Unable to begin writing to database");
+pub(crate) fn create_account() -> Result<(), Box<dyn Error>> {
+    let database = Database::create("account.redb")?;
+    let write_transaction = database.begin_write()?;
 
+    // calling for domains
     let res = ureq::get("https://api.mail.tm/domains")
-        .call()
-        .expect("Unable to create account")
-        .into_string()
-        .expect("Unable to convert to String");
-
-    let values: serde_json::Value =
-        serde_json::from_str(res.as_str()).expect("Unable to parse response");
+        .call()?
+        .into_string()?;
+    let values: serde_json::Value = serde_json::from_str(res.as_str())?;
 
     let domain = values["hydra:member"][0]["domain"].as_str().unwrap();
     let address = (Alphanumeric.sample_string(&mut thread_rng(), 8) + "@" + domain).to_lowercase();
     let password = Alphanumeric.sample_string(&mut thread_rng(), 16);
 
+    // creating account
     let res = ureq::post("https://api.mail.tm/accounts")
-        .send_json(json!({
-            "address": address,
-            "password": password
-        }))
-        .expect("Unable to create account")
-        .into_string()
-        .expect("Unable to convert to String");
-
-    let values: serde_json::Value =
-        serde_json::from_str(res.as_str()).expect("Unable to parse response");
-
+        .send_json(json!({"address": address, "password": password}))?
+        .into_string()?;
+    let values: serde_json::Value = serde_json::from_str(res.as_str())?;
     let id = values["id"].as_str().unwrap();
 
+    // retrieving token
     let res = ureq::post("https://api.mail.tm/token")
-        .send_json(json!({
-            "address": address,
-            "password": password
-        }))
-        .expect("Unable to create token")
-        .into_string()
-        .expect("Unable to convert to String");
-    let values: serde_json::Value =
-        serde_json::from_str(res.as_str()).expect("Unable to parse response");
+        .send_json(json!({"address": address, "password": password}))?
+        .into_string()?;
+    let values: serde_json::Value = serde_json::from_str(res.as_str())?;
 
     {
-        let mut table = write_transaction
-            .open_table(ACCOUNT)
-            .expect("Unable to open table");
-        table
-            .insert("address", address.as_str())
-            .expect("Unable to insert address");
-        table
-            .insert("password", password.as_str())
-            .expect("Unable to insert password");
-        table.insert("id", id).expect("Unable to insert id");
-        table
-            .insert("token", values["token"].as_str().unwrap())
-            .expect("Unable to insert id");
+        let mut table = write_transaction.open_table(ACCOUNT)?;
+        table.insert("address", address.as_str())?;
+        table.insert("password", password.as_str())?;
+        table.insert("id", id)?;
+        table.insert("token", values["token"].as_str().unwrap())?;
     }
-    write_transaction
-        .commit()
-        .expect("Transaction unable to be completed");
-
-    let read_transaction = database.begin_read().expect("Unable to start read");
-    let table = read_transaction
-        .open_table(ACCOUNT)
-        .expect("Unable to open table");
+    write_transaction.commit()?;
+    Ok(())
 }
 
-pub(crate) fn get_details() {
-    let database = Database::create("account.redb").expect("Unable to create database");
-    let read_transaction = database.begin_read().expect("Unable to start read");
-    // error handling
-    let table = read_transaction
-        .open_table(ACCOUNT)
-        .expect("Unable to open table");
-}
-
-pub(crate) fn delete_account() -> bool {
-    let database = Database::create("account.redb").expect("Unable to create database");
-    let read_transaction = database.begin_read().expect("Unable to start read");
+pub(crate) fn get_details() -> Result<(), Box<dyn Error>> {
+    let database = Database::create("account.redb")?;
+    let read_transaction = database.begin_read()?;
     // error handling needed
-    let table = read_transaction
-        .open_table(ACCOUNT)
-        .expect("Unable to open table");
+    let table = read_transaction.open_table(ACCOUNT)?;
 
-    204 == ureq::delete(
-        format!(
-            "https://api.mail.tm/accounts/{}",
-            table
-                .get("id")
-                .expect("unable to retrieve id")
-                .expect("id does not exist")
-                .value()
-        )
-        .as_str(),
-    )
-    .set(
-        "Authorization",
-        format!(
-            "Bearer {}",
-            table
-                .get("token")
-                .expect("unable to retrieve token")
-                .expect("token does not exist")
-                .value()
-        )
-        .as_str(),
-    )
-    .call()
-    .expect("unable to delete account")
-    .status()
+    Ok(())
+}
+
+pub(crate) fn delete_account() -> Result<bool, Box<dyn Error>> {
+    let database = Database::create("account.redb")?;
+    let read_transaction = database.begin_read()?;
+    let table = read_transaction.open_table(ACCOUNT)?;
+
+    let Some(id) = table.get("id")? else {
+        return Err(Box::from("id does not exist"));
+    };
+    let Some(token) = table.get("token")? else {
+        return Err(Box::from("token does not exist"));
+    };
+
+    Ok(204
+        == ureq::delete(&format!("https://api.mail.tm/account/{}", id.value()))
+            .set("Authorization", &format!("Bearer {}", token.value()))
+            .call()?
+            .status())
 }
