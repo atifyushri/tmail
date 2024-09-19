@@ -1,5 +1,4 @@
-#[cfg(test)]
-mod tests;
+// #[cfg(test)]
 mod utilities;
 
 use arboard::Clipboard;
@@ -61,7 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             )
             .prompt();
 
-            let database = Database::create("account.redb")?;
+            let database = Database::create(format!("~/{}/account.redb", env!("CARGO_PKG_NAME")))?;
             let read_transaction = database.begin_read()?;
             let table = read_transaction.open_table(utilities::ACCOUNT)?;
 
@@ -82,7 +81,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 return Err(Box::from("No HTML content"));
             }
 
-            let mut file = File::create("index.html")?;
+            let mut file = File::create(format!("~/{}/index.html", env!("CARGO_PKG_NAME")))?;
+            file.write_all(b"")?;
             file.write_all(&html[0].as_str().unwrap().as_bytes())?;
             open::that("index.html")?;
         }

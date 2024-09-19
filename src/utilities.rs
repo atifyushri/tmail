@@ -9,7 +9,7 @@ use ureq::json;
 pub(crate) const ACCOUNT: TableDefinition<&str, &str> = TableDefinition::new("account");
 
 pub(crate) fn create_account() -> Result<String, Box<dyn Error>> {
-    let database = Database::create("account.redb")?;
+    let database = Database::create(format!("~/{}/account.redb", env!("CARGO_PKG_NAME")))?;
     let read_transaction = database.begin_read()?;
     if let Ok(table) = read_transaction.open_table(ACCOUNT) {
         if table.get("address").is_ok() {
@@ -54,7 +54,7 @@ pub(crate) fn create_account() -> Result<String, Box<dyn Error>> {
 }
 
 pub(crate) fn get_details() -> Result<String, Box<dyn Error>> {
-    let database = Database::create("account.redb")?;
+    let database = Database::create(format!("~/{}/account.redb", env!("CARGO_PKG_NAME")))?;
     let read_transaction = database.begin_read()?;
     let table = read_transaction.open_table(ACCOUNT)?;
     let Some(address) = table.get("address")? else {
@@ -65,7 +65,7 @@ pub(crate) fn get_details() -> Result<String, Box<dyn Error>> {
 }
 
 pub(crate) fn delete_account() -> Result<bool, Box<dyn Error>> {
-    let database = Database::create("account.redb")?;
+    let database = Database::create(format!("~/{}/account.redb", env!("CARGO_PKG_NAME")))?;
     let read_transaction = database.begin_read()?;
     let table = read_transaction.open_table(ACCOUNT)?;
 
@@ -90,16 +90,16 @@ pub(crate) fn delete_account() -> Result<bool, Box<dyn Error>> {
 pub(crate) fn retrieve_messages() -> Result<Vec<serde_json::Value>, Box<dyn Error>> {
     let database = Database::create("account.redb")?;
     let read_transaction = database.begin_read()?;
-    let table = read_transaction.open_table(ACCOUNT)?;
-
-    // check for account existence
-
-    let Some(token) = table.get("token")? else {
-        return Err(Box::from("token does not exist"));
+    let table = match read_transaction.open_table(ACCOUNT) {
+        Ok(t) => t,
+        Err(_) => return Err(Box::from("account has not been generated")),
     };
 
     let res = ureq::get("https://api.mail.tm/messages")
-        .set("Authorization", &format!("Bearer {}", token.value()))
+        .set(
+            "Authorization",
+            &format!("Bearer {}", table.get("token")?.unwrap().value()),
+        )
         .call()?
         .into_string()?;
     let values: serde_json::Value = serde_json::from_str(&res)?;
