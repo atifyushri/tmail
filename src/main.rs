@@ -2,11 +2,13 @@
 mod tests;
 mod utilities;
 
-use std::collections::HashMap;
-
 use arboard::Clipboard;
 use clap::Parser;
 use inquire::Select;
+use redb::Database;
+use std::fs::File;
+use std::io::prelude::*;
+use std::{collections::HashMap, error::Error};
 
 #[derive(Parser)]
 enum TMail {
@@ -20,72 +22,71 @@ enum TMail {
     Me,
 }
 
-fn main() {
-    let mut clipboard = Clipboard::new().unwrap();
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut clipboard = Clipboard::new()?;
     let client = TMail::parse();
 
     match client {
-        TMail::Generate => match utilities::create_account() {
-            Ok(a) => {
-                println!("{a} copied to clipboard!");
-                clipboard.set_text(a).unwrap();
-            }
-            Err(e) => println!("Unable to generate new address: {e}"),
+        TMail::Generate => {
+            let a = utilities::create_account()?;
+            println!("{a} copied to clipboard!");
+            clipboard.set_text(a)?;
+        }
+        TMail::Delete => match utilities::delete_account()? {
+            true => println!("Account deleted"),
+            false => println!("Unable to delete account"),
         },
-        TMail::Delete => match utilities::delete_account() {
-            Ok(o) => {
-                if o {
-                    println!("Account deleted")
-                } else {
-                    println!("Unable to delete account")
-                }
+        TMail::Me => {
+            let a = utilities::get_details()?;
+            println!("{a} copied to clipboard!");
+            clipboard.set_text(a)?;
+        }
+        TMail::Fetch => {
+            let m = utilities::retrieve_messages()?;
+            if m.is_empty() {
+                return Err(Box::from("inbox is empty"));
             }
-            Err(e) => println!("Unable to delete account: {e}"),
-        },
-        TMail::Fetch => match utilities::retrieve_messages() {
-            Ok(m) => {
-                if m.is_empty() {
-                    return println!("There are no messages");
-                }
 
-                let mut kv = HashMap::new();
-                for e in m {
-                    kv.insert(
-                        e["subject"].as_str().unwrap().to_owned(),
-                        e["id"].as_str().unwrap().to_owned(),
-                    );
-                }
-
-                let c = Select::new(
-                    "Select a message",
-                    kv.clone().into_iter().map(|x| x.1).collect(),
-                )
-                .prompt();
-
-                let id: &String = match c {
-                    Ok(k) => kv.get(&k).unwrap(),
-                    Err(e) => {
-                        return println!("Unable to open message: {e}");
-                    }
-                };
-
-                // if this fails, god help
-                let res = match ureq::get(&format!("https://api.mail.tm/messages/{}", *id)).call() {
-                    Ok(r) => serde_json::from_str::<serde_json::Value>(&r.into_string().unwrap())
-                        .unwrap(),
-                    Err(e) => {
-                        return println!("Unable to open message: {e}");
-                    }
-                };
+            let mut kv = HashMap::new();
+            for e in m {
+                kv.insert(
+                    e["subject"].as_str().unwrap().to_owned(),
+                    e["id"].as_str().unwrap().to_owned(),
+                );
             }
-            Err(e) => println!("Unable to retrieve messages: {e}"),
-        },
-        TMail::Me => match utilities::get_details() {
-            Ok(a) => {
-                println!("{a} copied to clipboard!");
-                clipboard.set_text(a).unwrap();
+
+            let c = Select::new(
+                "Select a message",
+                kv.clone().into_iter().map(|x| x.0).collect(),
+            )
+            .prompt();
+
+            let database = Database::create("account.redb")?;
+            let read_transaction = database.begin_read()?;
+            let table = read_transaction.open_table(utilities::ACCOUNT)?;
+
+            let res = ureq::get(&format!(
+                "https://api.mail.tm/messages/{}",
+                kv.get(&c?).unwrap()
+            ))
+            .set(
+                "Authorization",
+                &format!("Bearer {}", table.get("token")?.unwrap().value()),
+            )
+            .call()?
+            .into_string()?;
+
+            let values = serde_json::from_str::<serde_json::Value>(&res)?;
+            let html = values["html"].as_array().unwrap();
+            if html.len() == 0 {
+                return Err(Box::from("No HTML content"));
             }
-            Err(e) => println!("Does not exist"),
-        },
-    }
+
+            let mut file = File::create("index.html")?;
+            file.write_all(&html[0].as_str().unwrap().as_bytes())?;
+            open::that("index.html")?;
+        }
+    };
+
+    Ok(())
 }

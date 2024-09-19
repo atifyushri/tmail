@@ -6,7 +6,7 @@ use redb::{Database, TableDefinition};
 use std::error::Error;
 use ureq::json;
 
-const ACCOUNT: TableDefinition<&str, &str> = TableDefinition::new("account");
+pub(crate) const ACCOUNT: TableDefinition<&str, &str> = TableDefinition::new("account");
 
 pub(crate) fn create_account() -> Result<String, Box<dyn Error>> {
     let database = Database::create("account.redb")?;
@@ -91,6 +91,8 @@ pub(crate) fn retrieve_messages() -> Result<Vec<serde_json::Value>, Box<dyn Erro
     let database = Database::create("account.redb")?;
     let read_transaction = database.begin_read()?;
     let table = read_transaction.open_table(ACCOUNT)?;
+
+    // check for account existence
 
     let Some(token) = table.get("token")? else {
         return Err(Box::from("token does not exist"));
