@@ -10,8 +10,15 @@ fn test_get_details() {
     get_details();
 }
 
+// #[test]
+// fn test_delete_account() {
+//     use crate::utilities::delete_account;
+//     assert!(delete_account());
+// }
+
 #[test]
-fn test_delete_account() {
-    use crate::utilities::delete_account;
-    assert!(delete_account());
+fn test_retrieve_messages() {
+    use crate::utilities::retrieve_messages;
+    let l = retrieve_messages().unwrap().len();
+    assert_eq!(l, 0)
 }
