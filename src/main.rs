@@ -48,16 +48,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     match client {
         TMail::Generate => {
             let a = utilities::create_account()?;
-            println!("{a} copied to clipboard!");
+            println!("> {a} copied to clipboard!");
             clipboard.set_text(a)?;
         }
         TMail::Delete => match utilities::delete_account()? {
-            true => println!("Account deleted"),
+            true => println!("> Account deleted"),
             false => println!("Unable to delete account"),
         },
         TMail::Me => {
             let a = utilities::get_details()?;
-            println!("{a} copied to clipboard!");
+            println!("> {a} copied to clipboard!");
             clipboard.set_text(a)?;
         }
         TMail::Fetch => {
