@@ -35,7 +35,7 @@ Retrieve messages from inbox and tries to open selected message in browser,
 ```
 tmail fetch
 ? Select a message
-> Subject of Email
+> Subject of Email - noreply@example.com
 [↑↓ to move, enter to select, type to filter]
 ```
 
