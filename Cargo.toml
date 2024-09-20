@@ -1,6 +1,6 @@
 [package]
 name = "tmail"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Atif Yushri <atif@yushri.com>"]
 description = "A temporary email address"

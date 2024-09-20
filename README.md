@@ -27,7 +27,7 @@ tmail me
 Deletes a **generated** address.
 ```
 tmail delete
-> user@email.com copied to clipboard!
+> Account deleted
 ```
 
 ### Fetch
@@ -35,7 +35,8 @@ Retrieve messages from inbox and tries to open selected message in browser,
 ```
 tmail fetch
 ? Select a message
-> Subject of Email - noreply@example.com
+> Email Subject #1 - noreply@example.com
+> Email Subject #2 - fake@email.com
 [↑↓ to move, enter to select, type to filter]
 ```
 
